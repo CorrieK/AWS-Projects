@@ -1,0 +1,341 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+
+Description: Template for VPC
+
+
+Parameters:
+  VpcCIDR: 
+    Type: String
+    Default: 10.0.0.0/16
+    Description: Enter preferred VPC CIDR
+  publicSubnet1CIDR:
+    Type: String
+    Default: 10.0.2.0/24
+    Description: Enter CIDR for public subnet 1
+  publicSubnet2CIDR:
+    Type: String
+    Default: 10.0.3.0/24
+    Description: Enter CIDR for public subnet 2
+  privateSubnet1CIDR:
+    Type: String
+    Default: 10.0.4.0/24
+    Description: Enter CIDR for private subnet 1
+  privateSubnet2CIDR:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: Enter CIDR for private subnet 2
+  DBSubnet1CIDR:
+    Type: String   
+    Default: 10.0.5.0/24
+    Description: Enter CIDR for DB subnet 1
+  DBSubnet2CIDR:
+    Type: String 
+    Default: 10.0.6.0/24   
+    Description: Enter CIDR for DB subnet 2
+
+Resources:
+  testVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock:
+        Ref: VpcCIDR
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      InstanceTenancy: default
+      Tags:
+      - Key: Name
+        Value: testVPC
+
+  myInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+      - Key: Name
+        Value: myInternetGateway
+
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId:
+         Ref: testVPC
+      InternetGatewayId:
+        Ref: myInternetGateway   
+  
+  publicSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: testVPC
+      CidrBlock:
+        Ref: publicSubnet1CIDR
+      AvailabilityZone: "us-east-1a"
+      Tags:
+      - Key: Name
+        Value: publicSubnet1  
+
+  publicSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: testVPC
+      CidrBlock:
+        Ref: publicSubnet2CIDR
+      AvailabilityZone: "us-east-1c"
+      Tags:
+      - Key: Name
+        Value: publicSubnet2  
+
+  privateSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: testVPC
+      CidrBlock:
+        Ref: privateSubnet1CIDR
+      AvailabilityZone: "us-east-1a"
+      Tags:
+      - Key: Name
+        Value: privateSubnet1
+  
+  privateSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: testVPC
+      CidrBlock:
+        Ref: privateSubnet2CIDR
+      AvailabilityZone: "us-east-1c"
+      Tags:
+      - Key: Name
+        Value: privateSubnet2    
+
+  DBSubnet1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: testVPC
+      CidrBlock:
+        Ref: DBSubnet1CIDR
+      AvailabilityZone: "us-east-1a"
+      Tags:
+      - Key: Name
+        Value: DBSubnet1
+  
+  DBSubnet2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId:
+        Ref: testVPC
+      CidrBlock:
+        Ref: DBSubnet2CIDR
+      AvailabilityZone: "us-east-1c"
+      Tags:
+      - Key: Name
+        Value: DBSubnet2   
+
+  myRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:  
+        Ref: testVPC
+      Tags:
+      - Key: name
+        Value: myRouteTable
+
+  myRoute:
+    Type: AWS::EC2::Route
+    Properties:
+       RouteTableId:
+         Ref: myRouteTable
+       DestinationCidrBlock: 0.0.0.0/0
+       GatewayId:
+         Ref: myInternetGateway
+
+  NatGateway1:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: 
+        GetAtt: NatGatewayEIP1.AllocationId
+      SubnetId:
+        Ref: publicSubnet1
+    
+  NatGatewayEIP1:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+  
+  PrivateRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: testVPC
+      Tags:
+        - Key: Name
+          Value: PrivateRouteTable1
+
+  PrivateRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: testVPC
+      Tags:
+        - Key: Name
+          Value: PrivateRouteTable2
+
+  DBRouteTable1:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: testVPC
+      Tags:
+        - Key: Name
+          Value: DBRouteTable1
+
+  DBRouteTable2:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId:
+        Ref: testVPC
+      Tags:
+        - Key: Name
+          Value: DBRouteTable2
+
+  RouteToNatGateway1: 
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NatGateway1
+
+  NatGateway2:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId:
+        GetAtt: NatGatewayEIP2.AllocationId
+      SubnetId:
+        Ref: publicSubnet2
+
+  NatGatewayEIP2:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: vpc
+
+  RouteToNatGateway2:  
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId:
+        Ref: PrivateRouteTable2
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId:
+        Ref: NatGateway2
+
+  SubnetRouteTableAssociation1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: publicSubnet1
+      RouteTableId:
+        Ref: myRouteTable
+
+  SubnetRouteTableAssociation2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: publicSubnet2
+      RouteTableId:
+        Ref: myRouteTable
+
+  SubnetRouteTableAssociationPrivate1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: privateSubnet1
+      RouteTableId:
+        Ref: PrivateRouteTable1
+
+  SubnetRouteTableAssociationPrivate2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: privateSubnet2
+      RouteTableId:
+        Ref: PrivateRouteTable2
+
+  SubnetRouteTableAssociationDB1:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: DBSubnet1
+      RouteTableId:
+        Ref: DBRouteTable1
+
+  SubnetRouteTableAssociationDB2:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId:
+        Ref: DBSubnet2
+      RouteTableId:
+        Ref: DBRouteTable2
+
+  ApplicationSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow communication between application and DB tiers
+      VpcId:
+        Ref: testVPC
+      Tags: 
+        - Key: Name
+          Value: ApplicationSecurityGroup
+
+  ApplicationToDBIngressRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId:
+        Ref: ApplicationSecurityGroup
+      IpProtocol: tcp
+      FromPort: 3306  # Assuming MySQL port, update as needed
+      ToPort: 3306
+      SourceSecurityGroupId:
+        GetAtt: DBSecurityGroup.GroupId
+
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow incoming connections to the DB
+      VpcId:
+        Ref: testVPC
+
+  DBToApplicationIngressRule:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId:
+        Ref: DBSecurityGroup
+      IpProtocol: tcp
+      FromPort: 3306
+      ToPort: 3306
+      SourceSecurityGroupId:
+        GetAtt: ApplicationSecurityGroup.GroupId
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow http to client host
+      VpcId:
+        Ref: testVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
