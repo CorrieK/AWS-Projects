@@ -162,9 +162,13 @@ Resources:
 
 Parameters:
   # Key Pair parameter for EC2 instances
-  KeyPairName:
-    Type: AWS::EC2::KeyPair::KeyName
-    Description: Name of an existing EC2 KeyPair to enable SSH access
+  Type: AWS::EC2::KeyPair
+  Properties:
+    KeyFormat: pem
+    KeyName: Test
+    KeyType: String
+    PublicKeyMaterial: String
+
 
 Outputs:
   VPCId:
