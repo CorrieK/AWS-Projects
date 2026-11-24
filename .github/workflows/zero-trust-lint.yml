@@ -1,0 +1,52 @@
+name: Zero-Trust IaC Governance
+
+on:
+  pull_request:
+    paths:
+      - 'infra/**'
+      - '.github/workflows/zero-trust-lint.yml'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  zt-lint-scan:
+    name: Zero-Trust Spec Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install zt-lint
+        run: |
+          python -m pip install --upgrade pip
+          pip install .
+
+      - name: Run Zero-Trust Scan & Generate Audit Report
+        id: scan
+        run: |
+          set +e
+          zt-lint scan ./infra --format markdown --output zt-audit-report.md
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+
+      - name: Post Remediation Report to Pull Request
+        if: always() && hashFiles('zt-audit-report.md') != ''
+        continue-on-error: true   # fork PRs get a read-only token
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: zt-lint-audit
+          path: zt-audit-report.md
+
+      - name: Enforce Zero-Trust Gate
+        if: always() && steps.scan.outputs.exit_code != '0'
+        run: |
+          echo "::error::Zero-Trust compliance violations detected (exit code ${{ steps.scan.outputs.exit_code }}). Review the PR audit report comment."
+          exit 1
