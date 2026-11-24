@@ -1,5 +1,0 @@
-# Parses as YAML but structurally wrong: Resources is a list, Properties is a string.
-Resources:
-  - Type: AWS::S3::Bucket
-  - just a string
-Outputs: 42
