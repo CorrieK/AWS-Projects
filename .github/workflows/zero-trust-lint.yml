@@ -31,7 +31,7 @@ jobs:
       - name: Install zt-lint
         run: |
           python -m pip install --upgrade pip
-          pip install "git+https://github.com/CorrieK/zt-lint.git@v0.1.0"
+          pip install "git+https://github.com/CorrieK/zt-lint.git"
 
       - name: Run Zero-Trust Scan & Generate Audit Report
         id: scan
