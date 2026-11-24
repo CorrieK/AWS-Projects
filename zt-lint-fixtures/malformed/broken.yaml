@@ -1,0 +1,11 @@
+# INTENTIONALLY MALFORMED: parser must report an error, never crash.
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  BadInstance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-12345678
+      SecurityGroupIds: [sg-1, sg-2
+      Tags:
+        - Key: Name
+         Value: misaligned
